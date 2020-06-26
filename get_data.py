@@ -61,12 +61,14 @@ for result in results:
     #     danger += requests = result['value'][1]
 
 for cluster,timestamp in clusters.items():
-    append = '"renderer": "region","name": '+cluster+',"maxVolume": 50000,"class": "normal","updated":'+str(timestamp)+':,"nodes": ['
+    append = '"renderer": "region","name": "'+cluster+'","maxVolume": 50000,"class": "normal","updated":'+str(timestamp)+',"nodes": ['
     for namespace in namespaces:
-        append += '{"name": "INTERNET","renderer": "focusedChild","class": "normal"},{"name": '+namespace+',"renderer": "focusedChild","class": "normal"}'
+        if namespace:
+            append += '{"name": "INTERNET","renderer": "focusedChild","class": "normal"},{"name": '+namespace+',"renderer": "focusedChild","class": "normal"},'
     append += '],"connections": ['
     for namespace in namespaces:
-        append += '{"source": "INTERNET","target": '+namespace+',"metrics": {"danger": 116.524,"normal": 15598.906},"class": "normal"}'
+        if namespace:
+            append += '{"source": "INTERNET","target": '+namespace+',"metrics": {"danger": 116.524,"normal": 15598.906},"class": "normal"},'
     append += ']'
     print (append)
 
