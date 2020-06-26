@@ -64,11 +64,11 @@ for cluster,timestamp in clusters.items():
     append = '"renderer": "region","name": "'+cluster+'","maxVolume": 50000,"class": "normal","updated":'+str(timestamp)+',"nodes": ['
     for namespace in namespaces:
         if namespace:
-            append += '{"name": "INTERNET","renderer": "focusedChild","class": "normal"},{"name": '+namespace+',"renderer": "focusedChild","class": "normal"},'
+            append += '{"name": "INTERNET","renderer": "focusedChild","class": "normal"},{"name": "'+namespace+'","renderer": "focusedChild","class": "normal"},'
     append += '],"connections": ['
     for namespace in namespaces:
         if namespace:
-            append += '{"source": "INTERNET","target": '+namespace+',"metrics": {"danger": 116.524,"normal": 15598.906},"class": "normal"},'
+            append += '{"source": "INTERNET","target": "'+namespace+'","metrics": {"danger": 116.524,"normal": 15598.906},"class": "normal"},'
     append += ']'
     print (append)
 
@@ -108,18 +108,18 @@ data['nodes'].append({
 #         ]
 #     })
 
-# data['connections'] = []
-# data['connections'].append({
-#     "source": "INTERNET",
-#     "target": "stg02",
-#     "metrics": {
-#     "normal": 26037.626,
-#     "danger": 92.37
-#     },
-#     "notices": [
-#     ],
-#     "class": "normal"
-# })
+data['connections'] = []
+data['connections'].append({
+    "source": "INTERNET",
+    "target": "stg02",
+    "metrics": {
+    "normal": 26037.626,
+    "danger": 92.37
+    },
+    "notices": [
+    ],
+    "class": "normal"
+})
 
 
 #     l = [result['metric'].get('__name__', '')] + result['value']
@@ -129,5 +129,5 @@ data['nodes'].append({
 #     print (str(result['metric'].get("exported_namespace", '')) + str(result['value']))
 
 
-# with open('src/xxx.json', 'w') as outfile:
-#     json.dump(data, outfile, indent=2)
+with open('src/xxx.json', 'w') as outfile:
+    json.dump(data, outfile, indent=2)
