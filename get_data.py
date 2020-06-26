@@ -18,26 +18,24 @@ for result in results:
       labelnames.update(result['metric'].keys())
 
 # Canonicalize
-labelnames.discard('__name__')
 labelnames = sorted(labelnames)
 
 data = {
   "renderer": "global",
   "name": "edge",
-}
-data['nodes'] = []
-data['nodes'].append({
+  "nodes": [{
     "renderer": "region",
     "name": "INTERNET",
     "class": "normal"
-})
+  }]
+}
 
 info = 0
 warn = 0
 danger = 0
 
 clusters = {}
-namespaces = set()
+namespaces = []
 requests = {}
 
 for result in results:
@@ -45,89 +43,98 @@ for result in results:
     timestamp = result['value'][0]
     clusters[cluster]= timestamp
     namespace = result['metric'].get("exported_namespace", '')
-    namespaces.add (namespace)
-    requests[namespace+"_info"] = 1233
-    requests[namespace+"_warn"] = 324523423
-    requests[namespace+"_danger"] = 123213
+    namespaces.append (namespace)
+    request_val = result['value'][1]
+    status_code = result['metric'].get("status", '')
+    if int(status_code) >= 100 and int(status_code) < 400:
+        if namespace+"-info" in requests.keys():
+            requests[namespace+"-info"] += int(request_val)
+            info += int(request_val)
+        else:
+            requests[namespace+"-info"] = int(request_val)
+            info += int(request_val)
+    elif int(status_code) >= 400 and int(status_code) < 500:
+        if namespace+"-warn" in requests.keys():
+            requests[namespace+"-warn"] += int(request_val)
+            warn += int(request_val)
+        else:
+            requests[namespace+"-warn"] = int(request_val)
+            warn += int(request_val)
+    elif int(status_code) >= 500:
+        if namespace+"-danger" in requests.keys():
+            requests[namespace+"-danger"] += int(request_val)
+            danger += int(request_val)
+        else:
+            requests[namespace+"-danger"] = int(request_val)
+            danger += int(request_val)
 
+namespaces_clear = list(set(namespaces))
 
-    # requests = result['value'][1]
-    # status_code = result['metric'].get("status", '')
-    # if status_code >= 100 and status_code < 400
-    #     info += requests = result['value'][1]
-    # elif status_code >= 400 and status_code < 500
-    #     warn += requests = result['value'][1]
-    # elif status_code >= 500
-    #     danger += requests = result['value'][1]
+for namespace in namespaces_clear:
+    if namespace:
+        if namespace+"-info" not in requests.keys():
+            requests[namespace+"-info"] = 0
+        if namespace+"-warn" not in requests.keys():
+            requests[namespace+"-warn"] = 0
+        if namespace+"-danger" not in requests.keys():
+            requests[namespace+"-danger"] = 0
 
 for cluster,timestamp in clusters.items():
-    append = '"renderer": "region","name": "'+cluster+'","maxVolume": 50000,"class": "normal","updated":'+str(timestamp)+',"nodes": ['
-    for namespace in namespaces:
+    data["nodes"].append(
+        {
+            "renderer": "region",
+            "name": cluster,
+            "class": "normal",
+            "maxVolume": 50000,
+            "class": "normal",
+            "updated": str(timestamp)
+        }
+    )
+    data["nodes"][1].update({
+        "nodes": [{
+            "name": "INTERNET",
+            "renderer": "focusedChild",
+            "class": "normal"
+        }]
+    })
+    for namespace in namespaces_clear:
         if namespace:
-            append += '{"name": "INTERNET","renderer": "focusedChild","class": "normal"},{"name": "'+namespace+'","renderer": "focusedChild","class": "normal"},'
-    append += '],"connections": ['
-    for namespace in namespaces:
+            data["nodes"][1]["nodes"].append({
+                "name": namespace,
+                "renderer": "focusedChild",
+                "class": "normal"
+            })
+    data["nodes"][1].update({
+        "connections": [{
+        }]
+    })
+    for namespace in namespaces_clear:
         if namespace:
-            append += '{"source": "INTERNET","target": "'+namespace+'","metrics": {"danger": 116.524,"normal": 15598.906},"class": "normal"},'
-    append += ']'
-    print (append)
-
-data['nodes'].append({
-    append
-})
-
-# for cluster in clusters:
-#     data['nodes'].append({
-#         "renderer": "region",
-#         "name": cluster,
-#         "maxVolume": 50000,
-#         "class": "normal",
-#         "updated": namespaces[cluster+"_timestamp"],
-#         "nodes": [
-#         {
-#           "name": "INTERNET",
-#           "renderer": "focusedChild",
-#           "class": "normal"
-#         },
-#         {
-#           "name": namespace,
-#           "renderer": "focusedChild",
-#           "class": "normal"
-#         }
-#         ],
-#         "connections": [
-#         {
-#           "source": "INTERNET",
-#           "target": namespace,
-#           "metrics": {
-#             "danger": 116.524,
-#             "normal": 15598.906
-#           },
-#           "class": "normal"
-#         }
-#         ]
-#     })
+            data["nodes"][1]["connections"].append({
+                "source": "INTERNET",
+                "target": namespace,
+                "metrics": {
+                    "danger": str(requests[namespace+"-danger"]),
+                    "normal": str(requests[namespace+"-info"]),
+                    "warning": str(requests[namespace+"-warn"])
+                },
+                "class": "normal"
+            })
 
 data['connections'] = []
 data['connections'].append({
     "source": "INTERNET",
     "target": "stg02",
     "metrics": {
-    "normal": 26037.626,
-    "danger": 92.37
+    "normal": info,
+    "warning": warn,
+    "danger": danger
     },
     "notices": [
     ],
     "class": "normal"
 })
 
-
-#     l = [result['metric'].get('__name__', '')] + result['value']
-#     for label in labelnames:
-#         l.append(result['metric'].get(label, ''))
-#     print (result['metric'].get("exported_namespace", ''))
-#     print (str(result['metric'].get("exported_namespace", '')) + str(result['value']))
-
-
+#print (data)
 with open('src/xxx.json', 'w') as outfile:
     json.dump(data, outfile, indent=2)
