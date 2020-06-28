@@ -97,6 +97,7 @@ class TrafficFlow extends React.Component {
   }
 
   // ///////////////////// Socket.io Stuff ///////////////////////////////////////
+  
   initializeSocket () {
     this.socket = io('http://localhost:5000');
     // //console.log(io);
