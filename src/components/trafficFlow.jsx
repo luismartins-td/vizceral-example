@@ -11,6 +11,7 @@ import queryString from 'query-string';
 import request from 'superagent';
 
 import './trafficFlow.css';
+import io from 'socket.io-client';
 import Breadcrumbs from './breadcrumbs';
 import DisplayOptions from './displayOptions';
 import PhysicsOptions from './physicsOptions';
@@ -40,6 +41,8 @@ const panelWidth = 400;
 class TrafficFlow extends React.Component {
   constructor (props) {
     super(props);
+
+    this.socket = {};
 
     this.state = {
       currentView: undefined,
@@ -91,6 +94,24 @@ class TrafficFlow extends React.Component {
         this.setState({ currentView: this.state.currentView.slice(0, -1) });
       }
     });
+  }
+
+  // ///////////////////// Socket.io Stuff ///////////////////////////////////////
+  initializeSocket () {
+    this.socket = io('http://localhost:5000');
+    // //console.log(io);
+    this.socket.on('connect', () => {
+      console.log('connected');
+      console.log('sending ping...');
+      this.socket.emit('ping', 'ping data');
+    });
+
+    this.socket.on('freshData', (data) => {
+      console.log(data);
+      this.updateData(data);
+    });
+
+    // ///////////////////////////////////////////////////////////////////////////
   }
 
   handlePopState () {
@@ -152,19 +173,27 @@ class TrafficFlow extends React.Component {
 
   beginSampleData () {
     this.traffic = { nodes: [], connections: [] };
-    request.get('xxx.json')
+    request.get('sample_data_with_shapes_and_notices.json')
       .set('Accept', 'application/json')
       .end((err, res) => {
         if (res && res.status === 200) {
           this.traffic.clientUpdateTime = Date.now();
+
           this.updateData(res.body);
         }
       });
   }
 
+  checkForNewData () {
+    // Just for testing purposes. Any new data should be pushed by the server. We don't poll. They push.
+    // client.send('TESTE');
+  }
+
   componentDidMount () {
     this.checkInitialRoute();
-    this.beginSampleData();
+    // this.beginSampleData();
+    this.initializeSocket();
+    // this.checkForNewData();
 
     // Listen for changes to the stores
     filterStore.addChangeListener(this.filtersChanged);
@@ -200,6 +229,7 @@ class TrafficFlow extends React.Component {
   }
 
   updateData (newTraffic) {
+    console.log('updateData called...');
     const regionUpdateStatus = _.map(_.filter(newTraffic.nodes, n => n.name !== 'INTERNET'), node => ({ region: node.name, updated: node.updated }));
     const lastUpdatedTime = _.max(_.map(regionUpdateStatus, 'updated'));
     this.setState({

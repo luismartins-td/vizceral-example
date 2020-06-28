@@ -3,6 +3,24 @@
 import requests
 import sys
 import json
+import socketio
+
+sio = socketio.Client()
+
+@sio.event
+def connect():
+    print('connection established')
+
+@sio.event
+def my_message(data):
+    print('message received with ', data)
+    sio.emit('my response', {'response': 'my response'})
+
+@sio.event
+def disconnect():
+    print('disconnected from server')
+
+sio.connect('http://localhost:5000')
 
 if len(sys.argv) != 3:
     print('Usage: {0} http://prometheus:9090 a_query'.format(sys.argv[0]))
@@ -87,7 +105,7 @@ for cluster,timestamp in clusters.items():
             "class": "normal",
             "maxVolume": 50000,
             "class": "normal",
-            "updated": str(timestamp)
+            "updated": timestamp
         }
     )
     data["nodes"][1].update({
@@ -136,5 +154,8 @@ data['connections'].append({
 })
 
 #print (data)
-with open('src/xxx.json', 'w') as outfile:
-    json.dump(data, outfile, indent=2)
+sio.emit('freshData', data)
+# with open('src/xxx.json', 'w') as outfile:
+#     json.dump(data, outfile, indent=2)
+#     outfile.close()
+sio.disconnect()
